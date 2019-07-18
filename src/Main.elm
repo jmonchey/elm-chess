@@ -1,7 +1,10 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (..)
+import Css exposing (..)
+import Html
+import Html.Styled exposing (..)
+import Html.Styled.Attributes exposing (css, src)
 
 
 
@@ -39,6 +42,7 @@ type alias Piece =
 type alias Square =
     { row : Row
     , column : Column
+    , shaded : Bool
     , piece : Maybe Piece
     }
 
@@ -47,7 +51,7 @@ type alias Board =
     List Square
 
 
-type GameState
+type Status
     = PlayerToMove Colour
     | Win Colour
     | Draw
@@ -55,7 +59,7 @@ type GameState
 
 type alias Model =
     { board : Board
-    , state : GameState
+    , status : Status
     }
 
 
@@ -75,26 +79,35 @@ initialBoard =
 
 rowOfPieces : Row -> Colour -> List Square
 rowOfPieces row colour =
-    [ Square row 1 (Just <| Piece colour Rook)
-    , Square row 2 (Just <| Piece colour Knight)
-    , Square row 3 (Just <| Piece colour Bishop)
-    , Square row 4 (Just <| Piece colour Queen)
-    , Square row 5 (Just <| Piece colour King)
-    , Square row 6 (Just <| Piece colour Bishop)
-    , Square row 7 (Just <| Piece colour Knight)
-    , Square row 8 (Just <| Piece colour Rook)
+    [ pieceSquare colour Rook row 1
+    , pieceSquare colour Knight row 2
+    , pieceSquare colour Bishop row 3
+    , pieceSquare colour Queen row 4
+    , pieceSquare colour King row 5
+    , pieceSquare colour Bishop row 6
+    , pieceSquare colour Knight row 7
+    , pieceSquare colour Rook row 8
     ]
+
+
+pieceSquare : Colour -> PieceType -> Row -> Column -> Square
+pieceSquare colour piece row column =
+    Square row column (squareShaded row column) (Just <| Piece colour piece)
+
+
+squareShaded : Row -> Column -> Bool
+squareShaded row column =
+    if modBy 2 row == 0 then
+        modBy 2 column == 0
+
+    else
+        modBy 2 column == 1
 
 
 rowOfPawns : Row -> Colour -> List Square
 rowOfPawns row colour =
     List.range 1 8
-        |> List.map (pawnSquare colour row)
-
-
-pawnSquare : Colour -> Row -> Column -> Square
-pawnSquare colour row column =
-    Square row column (Just <| Piece colour Pawn)
+        |> List.map (pieceSquare colour Pawn row)
 
 
 emptyRows : Row -> Row -> List Square
@@ -106,10 +119,15 @@ emptyRows rowStart rowEnd =
 emptyRow : Row -> List Square
 emptyRow row =
     List.range 1 8
-        |> List.map (\column -> Square row column Nothing)
+        |> List.map (emptySquare row)
 
 
-initialState : GameState
+emptySquare : Row -> Column -> Square
+emptySquare row column =
+    Square row column (squareShaded row column) Nothing
+
+
+initialState : Status
 initialState =
     PlayerToMove White
 
@@ -133,8 +151,106 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        []
+    div
+        [ css
+            [ boxSizing borderBox
+            ]
+        ]
+        [ div
+            [ css
+                [ property "display" "grid"
+                , property "grid-template-columns" "repeat(8, 80px)"
+                , property "grid-template-rows" "repeat(8, 80px)"
+                , margin auto
+                ]
+            ]
+            (List.range 1 8
+                |> List.reverse
+                |> List.map (squaresInRow model.board)
+                |> List.map viewRow
+            )
+        ]
+
+
+squaresInRow : Board -> Row -> List Square
+squaresInRow board row =
+    board
+        |> List.filter (\square -> square.row == row)
+
+
+viewRow : List Square -> Html Msg
+viewRow row =
+    div [ css [ property "display" "contents" ] ]
+        (List.map viewSquare row)
+
+
+viewSquare : Square -> Html Msg
+viewSquare square =
+    let
+        contents =
+            case square.piece of
+                Nothing ->
+                    []
+
+                Just piece ->
+                    [ img
+                        [ src <| imageSource piece
+                        , css
+                            [ width (pct 100)
+                            , height (pct 100)
+                            ]
+                        ]
+                        []
+                    ]
+
+        colour =
+            case square.shaded of
+                True ->
+                    "#b58761"
+
+                False ->
+                    "#efdab4"
+    in
+    div
+        [ css
+            [ backgroundColor (hex colour)
+            ]
+        ]
+        contents
+
+
+imageSource : Piece -> String
+imageSource { colour, type_ } =
+    let
+        colourString =
+            case colour of
+                Black ->
+                    "black"
+
+                White ->
+                    "white"
+
+        piece =
+            case type_ of
+                Rook ->
+                    "rook"
+
+                Knight ->
+                    "knight"
+
+                Bishop ->
+                    "bishop"
+
+                Queen ->
+                    "queen"
+
+                King ->
+                    "king"
+
+                Pawn ->
+                    "pawn"
+    in
+    "images/" ++ piece ++ "_" ++ colourString ++ ".svg"
 
 
 
@@ -146,5 +262,5 @@ main =
     Browser.sandbox
         { init = reset
         , update = update
-        , view = view
+        , view = view >> toUnstyled
         }
