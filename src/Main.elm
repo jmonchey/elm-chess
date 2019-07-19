@@ -33,6 +33,12 @@ type alias Column =
     Int
 
 
+type alias Location =
+    { row : Row
+    , column : Column
+    }
+
+
 type alias Piece =
     { colour : Colour
     , type_ : PieceType
@@ -40,8 +46,7 @@ type alias Piece =
 
 
 type alias Square =
-    { row : Row
-    , column : Column
+    { location : Location
     , shaded : Bool
     , piece : Maybe Piece
     }
@@ -92,7 +97,9 @@ rowOfPieces row colour =
 
 pieceSquare : Colour -> PieceType -> Row -> Column -> Square
 pieceSquare colour piece row column =
-    Square row column (isSquareShaded row column) (Just <| Piece colour piece)
+    Square (Location row column)
+        (isSquareShaded row column)
+        (Just <| Piece colour piece)
 
 
 isSquareShaded : Row -> Column -> Bool
@@ -124,7 +131,9 @@ emptyRow row =
 
 emptySquare : Row -> Column -> Square
 emptySquare row column =
-    Square row column (isSquareShaded row column) Nothing
+    Square (Location row column)
+        (isSquareShaded row column)
+        Nothing
 
 
 initialStatus : Status
@@ -175,7 +184,7 @@ view model =
 squaresInRow : Board -> Row -> List Square
 squaresInRow board row =
     board
-        |> List.filter (\square -> square.row == row)
+        |> List.filter (\square -> square.location.row == row)
 
 
 viewRow : List Square -> Html Msg
