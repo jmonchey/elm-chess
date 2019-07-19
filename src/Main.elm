@@ -65,7 +65,7 @@ type alias Model =
 
 reset : Model
 reset =
-    Model initialBoard initialState
+    Model initialBoard initialStatus
 
 
 initialBoard : Board
@@ -92,11 +92,11 @@ rowOfPieces row colour =
 
 pieceSquare : Colour -> PieceType -> Row -> Column -> Square
 pieceSquare colour piece row column =
-    Square row column (squareShaded row column) (Just <| Piece colour piece)
+    Square row column (isSquareShaded row column) (Just <| Piece colour piece)
 
 
-squareShaded : Row -> Column -> Bool
-squareShaded row column =
+isSquareShaded : Row -> Column -> Bool
+isSquareShaded row column =
     if modBy 2 row == 0 then
         modBy 2 column == 0
 
@@ -124,11 +124,11 @@ emptyRow row =
 
 emptySquare : Row -> Column -> Square
 emptySquare row column =
-    Square row column (squareShaded row column) Nothing
+    Square row column (isSquareShaded row column) Nothing
 
 
-initialState : Status
-initialState =
+initialStatus : Status
+initialStatus =
     PlayerToMove White
 
 
